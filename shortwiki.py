@@ -1,11 +1,34 @@
 #!/usr/bin/python
 
 from __future__ import with_statement
+from googlevoice import Voice
+import sys, time
+import BeautifulSoup
 import urllib
 import simplejson
 import time
 
+voice = Voice()
+
 WIKI_FILE = 'wiki.json'
+
+# by John Nagle
+#   nagle@animats.com
+def extractsms(htmlsms) :
+    msgitems = []
+    tree = BeautifulSoup.BeautifulSoup(htmlsms)	
+    conversations = tree.findAll("div",attrs={"id" : True},recursive=False)
+    for conversation in conversations:
+        rows = conversation.findAll(attrs={"class" : "gc-message-sms-row"})
+        for row in rows:
+            msgitem = {"id" : conversation["id"]}
+            spans = row.findAll("span",attrs={"class" : True}, recursive=False)
+            for span in spans:
+                cl = span["class"].replace('gc-message-sms-', '')
+                msgitem[cl] = (" ".join(span.findAll(text=True))).strip()
+            msgitems.append(msgitem)
+    return msgitems
+
 
 def init_wiki():
     import os
@@ -24,10 +47,24 @@ def dump_wiki(wiki):
         f.write("\n")
 
 def get_requests():
-    u = urllib.urlopen('http://localhost/~adam/incoming.json')
-    json = u.read()
-    u.close()
-    return simplejson.loads(json)
+    requests = []
+    
+    voice.sms()
+    msg_body = {}
+    msg_meta = [m for m in voice.sms().messages if not m.isRead]
+    for m in extractsms(voice.sms.html):
+        msg_body[m['id']] = m
+    for m in msg_meta:
+        if m.id in msg_body:
+            msg = dict(m)
+            msg.update(msg_body[m.id])
+            requests.append(dict(
+                src=msg['phoneNumber'], 
+                txt=msg['text'], 
+                t=int(time.mktime(msg['startTime']))))
+            m.delete()
+            
+    return requests
 
 def moses(requests):
     reads = [r for r in requests if r['txt'].find(' ') == -1]
@@ -65,20 +102,22 @@ def do_read(read, wiki):
         
 
 def send_response(dst, payload):
-    print "SEND_SMS(%s)" % dst, payload
+    voice.send_sms(dst, payload)
+    print "Sent page to %s." % dst
 
 def main(args):
+
+    voice.login()
 
     init_wiki()
 
     wiki = load_wiki()
 
     while True:
-        print 'fetching new requests...'
-
         requests = get_requests()
+        if len(requests):
+            print "Got %s requests." % len(requests)
         reads, writes = moses(requests)
-
 
         # process writes before reads so readers get the latest data
         for write in writes:
@@ -89,9 +128,7 @@ def main(args):
         for read in reads:
             do_read(read, wiki)
 
-        delay = 5
-        print 'sleeping:', delay
-        time.sleep(delay)
+        time.sleep(3)
 
 if __name__ == '__main__':
     import sys
