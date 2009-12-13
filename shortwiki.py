@@ -61,7 +61,7 @@ def get_requests():
             requests.append(dict(
                 src=msg['phoneNumber'], 
                 txt=msg['text'], 
-                t=int(time.mktime(msg['startTime']))))
+                t=int(time.mktime(msg['startTime']))-28800))
             m.delete()
             
     return requests
@@ -84,6 +84,7 @@ def do_write(write, wiki):
         'content': content,
         'author': src,
         'mtime': int(t)}
+    print "Write on page '%s' from %s." % (page, src)
 
 def do_read(read, wiki):
     src = read['src']
@@ -97,6 +98,7 @@ def do_read(read, wiki):
         delay = int(time.time()) - entry['mtime']
         author = entry['author']
         send_response(src, "%s %s/%s" % (content, author, delay_gist(delay)))
+        print "Read on page '%s' from %s." % (txt, src)
     else:
         send_response(src, '~')
 
@@ -116,7 +118,6 @@ def delay_gist(seconds):
 
 def send_response(dst, payload):
     voice.send_sms(dst, payload)
-    print "Sent page to %s." % dst
 
 def main(args):
 
@@ -126,6 +127,7 @@ def main(args):
 
     wiki = load_wiki()
 
+    print "Running..."
     while True:
         requests = get_requests()
         if len(requests):
