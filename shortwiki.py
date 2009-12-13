@@ -96,10 +96,23 @@ def do_read(read, wiki):
         content = entry['content']
         delay = int(time.time()) - entry['mtime']
         author = entry['author']
-        send_response(src, "%s %s/%ds" % (content, author, delay))
+        send_response(src, "%s %s/%s" % (content, author, delay_gist(delay)))
     else:
         send_response(src, '~')
-        
+
+def delay_gist(seconds):
+    if seconds < 60:
+        return "%ds" % int(seconds)
+    if seconds < 3600:
+        return "%dm" % int(seconds/60)
+    if seconds < 86400:
+        return "%dh" % int(seconds/3600)
+    if seconds < 2629743.83:
+        return "%dd" % int(seconds/86400)
+    if seconds < 31556929:
+        return "%dmo" % int(seconds/2629743.83)
+    else:
+        return "%dyr" % int(seconds/31556929)
 
 def send_response(dst, payload):
     voice.send_sms(dst, payload)
