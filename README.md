@@ -1,6 +1,6 @@
 ShortWiki
 =========
-An SMS-based wiki system
+An SMS-based wiki system using Google Voice
 
 Dependencies
 ------------
@@ -23,8 +23,8 @@ Make lots of pages! Serve up microcontent over SMS. :)
 
 Authors
 -------
-Adam Smith <adam@adamsmith.as>
-Jeff Lindsay <progrium@gmail.com>
+ * Adam Smith <adam@adamsmith.as>
+ * Jeff Lindsay <progrium@gmail.com>
 
 License
 -------
